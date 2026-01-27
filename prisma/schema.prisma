@@ -12,3 +12,133 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ==========================================
+// ENUMS
+// ==========================================
+enum Role {
+  CUSTOMER
+  PROVIDER
+  ADMIN
+}
+
+enum OrderStatus {
+  PLACED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+// ==========================================
+// CUSTOM MODELS
+// ==========================================
+
+model ProviderProfiles {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  businessName String
+  description  String?
+  address      String
+  logo         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  meals        Meal[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  // slug      String   @unique
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  meals Meal[]
+
+  @@map("categories")
+}
+
+model Meal {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  price       Decimal @db.Decimal(10, 2)
+  image       String?
+  isAvailable Boolean @default(true)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  providerId String
+  provider   ProviderProfiles @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  // dietary    String[] // ["vegetarian", "vegan", "gluten-free"]
+  // spiceLevel Int? // 0-5
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orderItems OrderItem[]
+  reviews    Review[]
+
+  @@map("meals")
+}
+
+model Order {
+  id          String @id @default(uuid())
+  orderNumber String @unique
+
+  customerId String
+  // customer   User   @relation(fields: [customerId], references: [id])
+
+  deliveryAddress String
+  phone           String
+  notes           String?
+
+  subtotal    Decimal @db.Decimal(10, 2)
+  deliveryFee Decimal @default(0) @db.Decimal(10, 2)
+  total       Decimal @db.Decimal(10, 2)
+
+  status OrderStatus @default(PLACED)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id String @id @default(uuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  mealId String
+  meal   Meal   @relation(fields: [mealId], references: [id])
+
+  quantity Int
+  price    Decimal @db.Decimal(10, 2) // Price at time of order
+
+  @@map("order_items")
+}
+
+model Review {
+  id String @id @default(uuid())
+
+  customerId String
+  // customer   User   @relation(fields: [customerId], references: [id])
+
+  mealId String
+  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+
+  rating  Int // 1-5
+  comment String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("reviews")
+}
