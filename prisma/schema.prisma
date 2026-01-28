@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -10,6 +11,7 @@ datasource db {
 // ==========================================
 // ENUMS
 // ==========================================
+
 enum Role {
   CUSTOMER
   PROVIDER

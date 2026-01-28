@@ -11,6 +11,24 @@ export const auth = betterAuth({
         process.env.APP_URL!, // http://localhost:3000
         "http://localhost:3000"
     ],
+    user: {
+        additionalFields: {
+            role: {
+                type: "string",
+                defaultValue: "CUSTOMER",
+                input: true, // Allow setting during registration
+            },
+            phone: {
+                type: "string",
+                required: false,
+                input: true,
+            },
+            isActive: {
+                type: "boolean",
+                defaultValue: true,
+            },
+        },
+    },
     emailAndPassword: {
         enabled: true,
     },
