@@ -1,11 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -16,7 +10,6 @@ datasource db {
 // ==========================================
 // ENUMS
 // ==========================================
-
 enum Role {
   CUSTOMER
   PROVIDER
@@ -44,13 +37,17 @@ model ProviderProfiles {
   logo         String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  meals        Meal[]
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals Meal[]
+
+  @@map("provider_profiles")
 }
 
 model Category {
   id        String   @id @default(uuid())
   name      String   @unique
-  // slug      String   @unique
+  slug      String   @unique
   image     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -74,8 +71,7 @@ model Meal {
   providerId String
   provider   ProviderProfiles @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
-  // dietary    String[] // ["vegetarian", "vegan", "gluten-free"]
-  // spiceLevel Int? // 0-5
+  dietary String[] // ["vegetarian", "vegan", "gluten-free"] - REQUIRED for filtering
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -91,7 +87,7 @@ model Order {
   orderNumber String @unique
 
   customerId String
-  // customer   User   @relation(fields: [customerId], references: [id])
+  customer   User   @relation(fields: [customerId], references: [id])
 
   deliveryAddress String
   phone           String
@@ -121,7 +117,7 @@ model OrderItem {
   meal   Meal   @relation(fields: [mealId], references: [id])
 
   quantity Int
-  price    Decimal @db.Decimal(10, 2) // Price at time of order
+  price    Decimal @db.Decimal(10, 2)
 
   @@map("order_items")
 }
@@ -130,12 +126,12 @@ model Review {
   id String @id @default(uuid())
 
   customerId String
-  // customer   User   @relation(fields: [customerId], references: [id])
+  customer   User   @relation(fields: [customerId], references: [id])
 
   mealId String
   meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
 
-  rating  Int // 1-5
+  rating  Int
   comment String?
 
   createdAt DateTime @default(now())
@@ -144,25 +140,40 @@ model Review {
   @@map("reviews")
 }
 
-model User {
-  id            String    @id
-  name          String
-  email         String
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+// ==========================================
+// BETTER AUTH MODELS
+// ==========================================
 
-  @@unique([email])
+model User {
+  id            String   @id
+  name          String
+  email         String   @unique
+  emailVerified Boolean  @default(false)
+  image         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Custom fields
+  phone    String?
+  role     Role    @default(CUSTOMER)
+  isActive Boolean @default(true)
+
+  // Better Auth relations
+  sessions Session[]
+  accounts Account[]
+
+  // Custom relations
+  providerProfile ProviderProfiles?
+  orders          Order[]
+  reviews         Review[]
+
   @@map("user")
 }
 
 model Session {
   id        String   @id
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
@@ -170,7 +181,6 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@index([userId])
   @@map("session")
 }
