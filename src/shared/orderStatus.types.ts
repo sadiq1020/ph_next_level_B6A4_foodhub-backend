@@ -1,0 +1,7 @@
+export const ORDER_STATUS = {
+    PLACED: 'PLACED',
+    PREPARING: 'PREPARING',
+    READY: 'READY',
+    DELIVERED: 'DELIVERED',
+    CANCELLED: 'CANCELLED',
+} as const;
