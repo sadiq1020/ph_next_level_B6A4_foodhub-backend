@@ -1,4 +1,3 @@
-
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
@@ -32,7 +31,6 @@ enum OrderStatus {
 
 model ProviderProfiles {
   id           String   @id @default(uuid())
-  userId       String   @unique
   businessName String
   description  String?
   address      String
@@ -40,8 +38,9 @@ model ProviderProfiles {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  meals Meal[]
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meals  Meal[]
 
   @@map("provider_profiles")
 }
@@ -49,7 +48,6 @@ model ProviderProfiles {
 model Category {
   id        String   @id @default(uuid())
   name      String   @unique
-  slug      String   @unique
   image     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,10 +65,10 @@ model Meal {
   image       String?
   isAvailable Boolean @default(true)
 
-  categoryId String
+  categoryId String // relation 1
   category   Category @relation(fields: [categoryId], references: [id])
 
-  providerId String
+  providerId String // relation 2
   provider   ProviderProfiles @relation(fields: [providerId], references: [id], onDelete: Cascade)
 
   dietary String[] // ["vegetarian", "vegan", "gluten-free"] - REQUIRED for filtering
