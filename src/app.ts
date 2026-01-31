@@ -5,6 +5,7 @@ import { auth } from "./lib/auth";
 import { mealRouter } from "./modules/meal/meal.router";
 import { categoryRouter } from "./modules/category/category.router";
 import { providerRouter } from "./modules/provider/provider.route";
+import { orderRouter } from "./modules/order/order.route";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use("/posts", mealRouter);
 app.use("/categories", categoryRouter);
 app.use("/provider/profile", providerRouter);
+app.use("/orders", orderRouter);
 
 
 // test the server running 
