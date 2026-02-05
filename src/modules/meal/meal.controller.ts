@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import { mealService } from "./meal .service";
 import { IMealFilters } from "./meal.interface";
+import { mealService } from "./meal.service";
 // import { mealService } from "./meal.service";
 
 // create a meal
@@ -42,7 +42,36 @@ const getAllMeals = async (req: Request, res: Response) => {
   }
 };
 
+// get meal by ID
+const getMealById = async (req: Request, res: Response) => {
+  try {
+    const mealId = req.params.id;
+
+    if (!mealId) {
+      throw new Error("meal id is required");
+    }
+
+    const result = await mealService.getMealById(mealId);
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: "Meal not found",
+      });
+    }
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error("Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 export const mealController = {
   createMeal,
   getAllMeals,
+  getMealById,
 };

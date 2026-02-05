@@ -24,7 +24,7 @@ const getAllMeals = async (filters: IMealFilters) => {
       // Filter by provider
       ...(providerId && { providerId }),
 
-      // Filter by dietary (e.g. "vegetarian", "vegan")
+      // Filter by dietary (for example: "vegetarian", "vegan")
       // checks if the dietary array in the DB contains the given value
       ...(dietary && { dietary: { has: dietary } }),
 
@@ -59,7 +59,27 @@ const getAllMeals = async (filters: IMealFilters) => {
   return result;
 };
 
+// get meal by id
+const getMealById = async (mealId: string) => {
+  const result = await prisma.meal.findUnique({
+    where: {
+      id: mealId,
+    },
+    include: {
+      category: true,
+      provider: {
+        select: {
+          id: true,
+          businessName: true,
+        },
+      },
+    },
+  });
+  return result;
+};
+
 export const mealService = {
   createMeal,
   getAllMeals,
+  getMealById,
 };
