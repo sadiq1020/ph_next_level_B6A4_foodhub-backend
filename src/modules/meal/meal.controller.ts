@@ -99,8 +99,45 @@ const getMealById = async (req: Request, res: Response) => {
   }
 };
 
+// update a meal (Provider only)
+const updateMeal = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const mealId = req.params.id;
+
+    if (!mealId) {
+      return res.status(400).json({
+        success: false,
+        message: "Meal ID is required",
+      });
+    }
+
+    const result = await mealService.updateMeal(mealId, req.body, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Meal updated successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Update Meal Failed",
+    });
+  }
+};
+
 export const mealController = {
   createMeal,
   getAllMeals,
   getMealById,
+  updateMeal,
 };

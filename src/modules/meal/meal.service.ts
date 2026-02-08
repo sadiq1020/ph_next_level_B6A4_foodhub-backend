@@ -132,8 +132,54 @@ const getMealById = async (mealId: string) => {
   };
 };
 
+// update a meal
+const updateMeal = async (
+  mealId: string,
+  data: IUpdateMeal,
+  userId: string,
+) => {
+  // 1. Find meal by id with provider info
+  const meal = await prisma.meal.findUnique({
+    where: { id: mealId },
+    include: {
+      provider: {
+        select: { id: true, userId: true },
+      },
+    },
+  });
+
+  // 2. Verify meal exists
+  if (!meal) {
+    throw new Error("Meal not found");
+  }
+
+  // 3. Verify meal.provider.userId matches authenticated user
+  if (meal.provider.userId !== userId) {
+    throw new Error("You can only update your own meals");
+  }
+
+  // 4. Update meal
+  const result = await prisma.meal.update({
+    where: { id: mealId },
+    data,
+    include: {
+      category: true,
+      provider: {
+        select: {
+          id: true,
+          businessName: true,
+        },
+      },
+    },
+  });
+
+  // 5. Return updated meal
+  return result;
+};
+
 export const mealService = {
   createMeal,
   getAllMeals,
   getMealById,
+  updateMeal,
 };
