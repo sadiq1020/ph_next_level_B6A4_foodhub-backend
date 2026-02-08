@@ -177,9 +177,41 @@ const updateMeal = async (
   return result;
 };
 
+// delete a meal
+const deleteMeal = async (mealId: string, userId: string) => {
+  // 1. Find meal by id with provider info
+  const meal = await prisma.meal.findUnique({
+    where: { id: mealId },
+    include: {
+      provider: {
+        select: { id: true, userId: true },
+      },
+    },
+  });
+
+  // 2. Verify meal exists
+  if (!meal) {
+    throw new Error("Meal not found");
+  }
+
+  // 3. Verify meal.provider.userId matches authenticated user
+  if (meal.provider.userId !== userId) {
+    throw new Error("You can only delete your own meals");
+  }
+
+  // 4. Delete meal (Prisma will cascade delete related orderItems and reviews)
+  await prisma.meal.delete({
+    where: { id: mealId },
+  });
+
+  // 5. Return success message
+  return { message: "Meal deleted successfully" };
+};
+
 export const mealService = {
   createMeal,
   getAllMeals,
   getMealById,
   updateMeal,
+  deleteMeal,
 };

@@ -135,9 +135,45 @@ const updateMeal = async (req: Request, res: Response) => {
   }
 };
 
+// delete a meal (Provider only)
+const deleteMeal = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const mealId = req.params.id;
+
+    if (!mealId) {
+      return res.status(400).json({
+        success: false,
+        message: "Meal ID is required",
+      });
+    }
+
+    const result = await mealService.deleteMeal(mealId, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Delete Meal Failed",
+    });
+  }
+};
+
 export const mealController = {
   createMeal,
   getAllMeals,
   getMealById,
   updateMeal,
+  deleteMeal,
 };
