@@ -1,40 +1,66 @@
 import { prisma } from "../../lib/prisma";
 import { ICreateMeal, IMealFilters } from "./meal.interface";
 
-// create a meal
-const createMeal = async (data: ICreateMeal) => {
+// create a meal with validation
+const createMeal = async (data: ICreateMeal, userId: string) => {
+  // 1. Verify provider exists
+  const provider = await prisma.providerProfiles.findUnique({
+    where: { id: data.providerId },
+    select: { id: true, userId: true },
+  });
+
+  if (!provider) {
+    throw new Error("Provider not found");
+  }
+
+  // 2. Verify provider's userId matches authenticated user
+  if (provider.userId !== userId) {
+    throw new Error("You can only create meals for your own provider profile");
+  }
+
+  // 3. Verify category exists
+  const category = await prisma.category.findUnique({
+    where: { id: data.categoryId },
+    select: { id: true },
+  });
+
+  if (!category) {
+    throw new Error("Category not found");
+  }
+
+  // 4. Create meal
   const result = await prisma.meal.create({
     data,
+    include: {
+      category: true,
+      provider: {
+        select: {
+          id: true,
+          businessName: true,
+        },
+      },
+    },
   });
+
   return result;
 };
 
-// get all meals with filters
+// get all meals with filters - KEEP USING THE ORIGINAL PRISMA IMPORT
 const getAllMeals = async (filters: IMealFilters) => {
   const { categoryId, dietary, minPrice, maxPrice, search, providerId } =
     filters;
 
   const result = await prisma.meal.findMany({
+    // ... rest stays exactly the same
     where: {
       isAvailable: true,
-
-      // Filter by category (cuisine)
       ...(categoryId && { categoryId }),
-
-      // Filter by provider
       ...(providerId && { providerId }),
-
-      // Filter by dietary (for example: "vegetarian", "vegan")
-      // checks if the dietary array in the DB contains the given value
       ...(dietary && { dietary: { has: dietary } }),
-
-      // Filter by price range
       price: {
         ...(minPrice !== undefined && { gte: minPrice }),
         ...(maxPrice !== undefined && { lte: maxPrice }),
       },
-
-      // Search by name or description (case-insensitive)
       ...(search && {
         OR: [
           { name: { contains: search, mode: "insensitive" } },
@@ -59,31 +85,11 @@ const getAllMeals = async (filters: IMealFilters) => {
   return result;
 };
 
-// get meal by id
-// const getMealById = async (mealId: string) => {
-//   const result = await prisma.meal.findUnique({
-//     where: {
-//       id: mealId,
-//     },
-//     include: {
-//       category: true,
-//       provider: {
-//         select: {
-//           id: true,
-//           businessName: true,
-//         },
-//       },
-//     },
-//   });
-//   return result;
-// };
-
-// get meal by id
+// get meal by id - KEEP USING THE ORIGINAL PRISMA IMPORT
 const getMealById = async (mealId: string) => {
   const result = await prisma.meal.findUnique({
-    where: {
-      id: mealId,
-    },
+    // ... rest stays exactly the same
+    where: { id: mealId },
     include: {
       category: true,
       provider: {
@@ -113,7 +119,6 @@ const getMealById = async (mealId: string) => {
     throw new Error("Meal not found");
   }
 
-  // Calculate average rating from reviews
   const averageRating =
     result.reviews.length > 0
       ? result.reviews.reduce((sum, review) => sum + review.rating, 0) /
@@ -122,7 +127,7 @@ const getMealById = async (mealId: string) => {
 
   return {
     ...result,
-    averageRating: Number(averageRating.toFixed(1)), // Round to 1 decimal place
+    averageRating: Number(averageRating.toFixed(1)),
     totalReviews: result.reviews.length,
   };
 };

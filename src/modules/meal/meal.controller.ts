@@ -3,6 +3,7 @@ import { IMealFilters } from "./meal.interface";
 import { mealService } from "./meal.service";
 // import { mealService } from "./meal.service";
 
+/*
 // create a meal
 const createMeal = async (req: Request, res: Response) => {
   try {
@@ -12,6 +13,34 @@ const createMeal = async (req: Request, res: Response) => {
     res.status(400).json({
       error: "Create Meal Failed",
       details: err,
+    });
+  }
+};
+*/
+
+// create a meal (Provider only)
+const createMeal = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const result = await mealService.createMeal(req.body, user.id);
+
+    res.status(201).json({
+      success: true,
+      message: "Meal created successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Create Meal Failed",
     });
   }
 };
