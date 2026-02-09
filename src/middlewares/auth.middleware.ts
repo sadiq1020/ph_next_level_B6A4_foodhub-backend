@@ -52,7 +52,7 @@ const auth = (...roles: UserRole[]) => {
       if (roles.length && !roles.includes(req.user.role)) {
         return res.status(403).json({
           success: false,
-          message: "Forbidden: You do not have the required permissions",
+          message: `Access Denied: This action requires the ${roles.join(" or ")} role.`,
         });
       }
 
