@@ -141,8 +141,77 @@ const cancelOrder = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get my orders
+ * GET /api/orders
+ * Auth: Customer only
+ */
+const getMyOrders = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Get all orders for this customer
+    const orders = await orderService.getMyOrders(user.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Orders retrieved successfully",
+      data: orders,
+    });
+  } catch (error: any) {
+    console.error("Get my orders error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to retrieve orders",
+    });
+  }
+};
+
+/**
+ * Get all orders (Admin only)
+ * GET /api/orders/admin/all
+ * Auth: Admin only
+ */
+const getAllOrdersForAdmin = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Get all orders from all customers
+    const orders = await orderService.getAllOrdersForAdmin();
+
+    res.status(200).json({
+      success: true,
+      message: "All orders retrieved successfully",
+      data: orders,
+      total: orders.length,
+    });
+  } catch (error: any) {
+    console.error("Get all orders error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to retrieve orders",
+    });
+  }
+};
+
 export const orderController = {
   createOrder,
   updateOrderStatus,
   cancelOrder,
+  getMyOrders,
+  getAllOrdersForAdmin,
 };

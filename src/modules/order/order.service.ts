@@ -191,8 +191,73 @@ const cancelOrder = async (orderId: string, userId: string) => {
   return updatedOrder;
 };
 
+// get my orders (Customer only)
+const getMyOrders = async (userId: string) => {
+  // Fetch all orders for this customer
+  const orders = await prisma.order.findMany({
+    where: {
+      customerId: userId,
+    },
+    include: {
+      items: {
+        include: {
+          meal: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              price: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc", // Most recent orders first
+    },
+  });
+
+  return orders;
+};
+
+// get all orders (Admin only)
+const getAllOrdersForAdmin = async () => {
+  // Fetch all orders from all customers
+  const orders = await prisma.order.findMany({
+    include: {
+      items: {
+        include: {
+          meal: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              price: true,
+            },
+          },
+        },
+      },
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc", // recent orders will show first
+    },
+  });
+
+  return orders;
+};
+
 export const orderService = {
   createOrder,
   updateOrderStatus,
   cancelOrder,
+  getMyOrders,
+  getAllOrdersForAdmin,
 };
