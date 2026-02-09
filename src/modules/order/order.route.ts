@@ -12,5 +12,6 @@ router.put(
   auth(ROLES.PROVIDER),
   orderController.updateOrderStatus,
 );
+router.put("/:id/cancel", auth(ROLES.CUSTOMER), orderController.cancelOrder);
 
 export const orderRouter = router;

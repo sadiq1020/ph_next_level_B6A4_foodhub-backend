@@ -98,7 +98,51 @@ const updateOrderStatus = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Cancel order
+ * PUT /api/orders/:id/cancel
+ * Auth: Customer only
+ */
+const cancelOrder = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const orderId = req.params.id;
+
+    // Validate required fields
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required",
+      });
+    }
+
+    // Cancel order
+    const order = await orderService.cancelOrder(orderId, user.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+      data: order,
+    });
+  } catch (error: any) {
+    console.error("Cancel order error:", error);
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to cancel order",
+    });
+  }
+};
+
 export const orderController = {
   createOrder,
   updateOrderStatus,
+  cancelOrder,
 };

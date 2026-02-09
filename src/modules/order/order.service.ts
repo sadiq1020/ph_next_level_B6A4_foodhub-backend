@@ -144,7 +144,55 @@ const updateOrderStatus = async (
   return updatedOrder;
 };
 
+// cancel order (Customer only)
+const cancelOrder = async (orderId: string, userId: string) => {
+  // 1. Find the order
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      customer: {
+        select: { id: true },
+      },
+    },
+  });
+
+  // 2. Verify order exists
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  // 3. Only customer who placed the order can cancel
+  if (order.customerId !== userId) {
+    throw new Error("You can only cancel your own orders");
+  }
+
+  // 4. Only if status is PLACED
+  if (order.status !== "PLACED") {
+    throw new Error("Only orders with PLACED status can be cancelled");
+  }
+
+  // 5. Update status to CANCELLED
+  const updatedOrder = await prisma.order.update({
+    where: { id: orderId },
+    data: { status: "CANCELLED" },
+    include: {
+      items: {
+        include: {
+          meal: true,
+        },
+      },
+      customer: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  // 6. Return updated order
+  return updatedOrder;
+};
+
 export const orderService = {
   createOrder,
   updateOrderStatus,
+  cancelOrder,
 };
