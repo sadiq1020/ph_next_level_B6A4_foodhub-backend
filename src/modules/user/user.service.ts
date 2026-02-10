@@ -77,7 +77,7 @@ const updateUserStatus = async (userId: string, isActive: boolean) => {
 
   // 2. Prevent admin from suspending themselves
   // Note: You'll need to pass the admin's ID to check this
-  // For now, we'll skip this check, but you can add it if needed
+  // For now I am skipping it
 
   // 3. Prevent suspending other admins (optional security)
   if (user.role === "ADMIN") {
