@@ -1,5 +1,8 @@
 import { prisma } from "../../lib/prisma";
-import { ICreateProviderProfile } from "./provider.interface";
+import {
+  ICreateProviderProfile,
+  IUpdateProviderProfile,
+} from "./provider.interface";
 
 // create new category
 const createProviderProfile = async (data: ICreateProviderProfile) => {
@@ -52,7 +55,50 @@ const getMyProfile = async (userId: string) => {
   return profile;
 };
 
+// update my provider profile
+const updateMyProfile = async (
+  userId: string,
+  data: IUpdateProviderProfile,
+) => {
+  // 1. Find provider profile by userId
+  const profile = await prisma.providerProfiles.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  // 2. Verify profile exists
+  if (!profile) {
+    throw new Error("Provider profile not found");
+  }
+
+  // 3. Update provider profile
+  const updatedProfile = await prisma.providerProfiles.update({
+    where: { id: profile.id },
+    data,
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+        },
+      },
+      _count: {
+        select: {
+          meals: true,
+        },
+      },
+    },
+  });
+
+  // 4. Return updated profile
+  return updatedProfile;
+};
+
 export const providerService = {
   createProviderProfile,
   getMyProfile,
+  updateMyProfile,
 };

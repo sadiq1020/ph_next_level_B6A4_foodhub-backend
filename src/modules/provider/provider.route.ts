@@ -8,5 +8,10 @@ const router = express.Router();
 
 router.post("/profile", providerController.createProviderProfile);
 router.get("/profile", auth(ROLES.PROVIDER), providerController.getMyProfile);
+router.put(
+  "/profile",
+  auth(ROLES.PROVIDER),
+  providerController.updateMyProfile,
+);
 
 export const providerRouter = router;

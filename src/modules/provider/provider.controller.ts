@@ -51,7 +51,45 @@ const getMyProfile = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Update my provider profile
+ * PUT /api/provider/profile
+ * Auth: Provider only
+ */
+const updateMyProfile = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Update provider profile
+    const profile = await providerService.updateMyProfile(user.id, req.body);
+
+    res.status(200).json({
+      success: true,
+      message: "Provider profile updated successfully",
+      data: profile,
+    });
+  } catch (error: any) {
+    console.error("Update provider profile error:", error);
+
+    const statusCode =
+      error.message === "Provider profile not found" ? 404 : 400;
+
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || "Failed to update provider profile",
+    });
+  }
+};
+
 export const providerController = {
   createProviderProfile,
   getMyProfile,
+  updateMyProfile,
 };
