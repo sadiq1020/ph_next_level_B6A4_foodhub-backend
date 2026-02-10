@@ -1,43 +1,45 @@
 import { prisma } from "../../lib/prisma";
 
-// // get all users (Admin only)
-// const getAllUsers = async (filters: IUserFilters) => {
-//   const { role, isActive, search } = filters;
+/*
+// get all users (Admin only)
+const getAllUsers = async (filters: IUserFilters) => {
+  const { role, isActive, search } = filters;
 
-//   const users = await prisma.user.findMany({
-//     where: {
-//       // Filter by role
-//       ...(role && { role: role as any }),
+  const users = await prisma.user.findMany({
+    where: {
+      // Filter by role
+      ...(role && { role: role as any }),
 
-//       // Filter by active status
-//       ...(isActive !== undefined && { isActive }),
+      // Filter by active status
+      ...(isActive !== undefined && { isActive }),
 
-//       // Search by name or email
-//       ...(search && {
-//         OR: [
-//           { name: { contains: search, mode: "insensitive" } },
-//           { email: { contains: search, mode: "insensitive" } },
-//         ],
-//       }),
-//     },
-//     select: {
-//       id: true,
-//       name: true,
-//       email: true,
-//       phone: true,
-//       role: true,
-//       isActive: true,
-//       emailVerified: true,
-//       createdAt: true,
-//       updatedAt: true,
-//     },
-//     orderBy: {
-//       createdAt: "desc", // Most recent users first
-//     },
-//   });
+      // Search by name or email
+      ...(search && {
+        OR: [
+          { name: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+        ],
+      }),
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      emailVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+    orderBy: {
+      createdAt: "desc", // Most recent users first
+    },
+  });
 
-//   return users;
-// };
+  return users;
+};
+*/
 
 // get all users (Admin only)
 const getAllUsers = async () => {
@@ -60,6 +62,50 @@ const getAllUsers = async () => {
 
   return users;
 };
+
+// update user status (suspend/activate)
+const updateUserStatus = async (userId: string, isActive: boolean) => {
+  // 1. Verify user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, isActive: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // 2. Prevent admin from suspending themselves
+  // Note: You'll need to pass the admin's ID to check this
+  // For now, we'll skip this check, but you can add it if needed
+
+  // 3. Prevent suspending other admins (optional security)
+  if (user.role === "ADMIN") {
+    throw new Error("Cannot change status of admin users");
+  }
+
+  // 4. Update user status
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: { isActive },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      emailVerified: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  // 5. Return updated user
+  return updatedUser;
+};
+
 export const userService = {
   getAllUsers,
+  updateUserStatus,
 };

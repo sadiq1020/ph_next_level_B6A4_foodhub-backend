@@ -7,5 +7,6 @@ const router = express.Router();
 
 // Admin routes
 router.get("/", auth(ROLES.ADMIN), userController.getAllUsers);
+router.patch("/:id/status", auth(ROLES.ADMIN), userController.updateUserStatus);
 
 export const userRouter = router;
