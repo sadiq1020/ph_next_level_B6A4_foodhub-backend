@@ -6,6 +6,7 @@ import { categoryRouter } from "./modules/category/category.router";
 import { mealRouter } from "./modules/meal/meal.router";
 import { orderRouter } from "./modules/order/order.route";
 import { providerRouter } from "./modules/provider/provider.route";
+import { userRouter } from "./modules/user/user.router";
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use("/meals", mealRouter);
 app.use("/categories", categoryRouter);
 app.use("/provider", providerRouter);
 app.use("/orders", orderRouter);
+app.use("/users", userRouter);
 
 // test the server running
 app.get("/", (req, res) => {
