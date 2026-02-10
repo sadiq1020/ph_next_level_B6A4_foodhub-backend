@@ -24,7 +24,7 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 // all custom routes
 app.use("/meals", mealRouter);
 app.use("/categories", categoryRouter);
-app.use("/provider/profile", providerRouter);
+app.use("/provider", providerRouter);
 app.use("/orders", orderRouter);
 
 // test the server running
