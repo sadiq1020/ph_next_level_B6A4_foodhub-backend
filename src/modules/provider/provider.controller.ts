@@ -88,8 +88,47 @@ const updateMyProfile = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get orders for my meals
+ * GET /api/provider/orders
+ * Auth: Provider only
+ */
+const getMyOrders = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    // Get orders that contain this provider's meals
+    const orders = await providerService.getMyOrders(user.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Orders retrieved successfully",
+      data: orders,
+      total: orders.length,
+    });
+  } catch (error: any) {
+    console.error("Get provider orders error:", error);
+
+    const statusCode =
+      error.message === "Provider profile not found" ? 404 : 500;
+
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || "Failed to retrieve orders",
+    });
+  }
+};
+
 export const providerController = {
   createProviderProfile,
   getMyProfile,
   updateMyProfile,
+  getMyOrders,
 };

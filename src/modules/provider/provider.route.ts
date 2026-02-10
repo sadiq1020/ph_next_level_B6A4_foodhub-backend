@@ -14,4 +14,6 @@ router.put(
   providerController.updateMyProfile,
 );
 
+router.get("/orders", auth(ROLES.PROVIDER), providerController.getMyOrders);
+
 export const providerRouter = router;

@@ -97,8 +97,69 @@ const updateMyProfile = async (
   return updatedProfile;
 };
 
+// get orders for my meals (Provider only)
+const getMyOrders = async (userId: string) => {
+  // 1. Find provider profile by userId
+  const profile = await prisma.providerProfiles.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  // 2. Verify profile exists
+  if (!profile) {
+    throw new Error("Provider profile not found");
+  }
+
+  // 3. Find all orders that contain meals from this provider
+  const orders = await prisma.order.findMany({
+    where: {
+      items: {
+        some: {
+          meal: {
+            providerId: profile.id,
+          },
+        },
+      },
+    },
+    include: {
+      items: {
+        where: {
+          meal: {
+            providerId: profile.id, // it means -> Only include items from this provider
+          },
+        },
+        include: {
+          meal: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              price: true,
+            },
+          },
+        },
+      },
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc", // Most recent orders will show at first
+    },
+  });
+
+  // 4. Return orders
+  return orders;
+};
+
 export const providerService = {
   createProviderProfile,
   getMyProfile,
   updateMyProfile,
+  getMyOrders,
 };
