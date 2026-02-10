@@ -208,10 +208,58 @@ const getAllOrdersForAdmin = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get order by ID
+ * GET /api/orders/:id
+ * Auth: Customer/Provider
+ */
+const getOrderById = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const orderId = req.params.id;
+
+    // Validate required fields
+    if (!orderId) {
+      return res.status(400).json({
+        success: false,
+        message: "Order ID is required",
+      });
+    }
+
+    // Get order details
+    const order = await orderService.getOrderById(orderId, user.id, user.role);
+
+    res.status(200).json({
+      success: true,
+      message: "Order retrieved successfully",
+      data: order,
+    });
+  } catch (error: any) {
+    console.error("Get order by ID error:", error);
+
+    // Return 404 for not found, 403 for unauthorized access
+    const statusCode = error.message === "Order not found" ? 404 : 400;
+
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || "Failed to retrieve order",
+    });
+  }
+};
+
 export const orderController = {
   createOrder,
   updateOrderStatus,
   cancelOrder,
   getMyOrders,
   getAllOrdersForAdmin,
+  getOrderById,
 };

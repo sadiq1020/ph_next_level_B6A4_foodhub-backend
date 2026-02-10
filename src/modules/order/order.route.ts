@@ -8,7 +8,6 @@ const router = express.Router();
 
 router.post("/", auth(ROLES.CUSTOMER), orderController.createOrder);
 
-// Admin routes (⚠️ Place BEFORE /:id routes)
 router.get(
   "/admin/all",
   auth(ROLES.ADMIN),
@@ -23,5 +22,10 @@ router.put(
 
 router.put("/:id/cancel", auth(ROLES.CUSTOMER), orderController.cancelOrder);
 router.get("/", auth(ROLES.CUSTOMER), orderController.getMyOrders);
+router.get(
+  "/:id",
+  auth(ROLES.CUSTOMER, ROLES.PROVIDER),
+  orderController.getOrderById,
+);
 
 export const orderRouter = router;

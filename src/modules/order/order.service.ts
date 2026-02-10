@@ -254,10 +254,73 @@ const getAllOrdersForAdmin = async () => {
   return orders;
 };
 
+// get order by id (Customer/Provider)
+const getOrderById = async (
+  orderId: string,
+  userId: string,
+  userRole: string,
+) => {
+  // Fetch the order with all details
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      items: {
+        include: {
+          meal: {
+            include: {
+              provider: {
+                select: {
+                  id: true,
+                  businessName: true,
+                  userId: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      customer: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+        },
+      },
+    },
+  });
+
+  // Verify order exists
+  if (!order) {
+    throw new Error("Order not found");
+  }
+
+  // Authorization check
+  if (userRole === "CUSTOMER") {
+    // Customer can only view their own orders
+    if (order.customerId !== userId) {
+      throw new Error("You can only view your own orders");
+    }
+  } else if (userRole === "PROVIDER") {
+    // Provider can only view orders containing their meals
+    const hasProviderMeals = order.items.some(
+      (item) => item.meal.provider.userId === userId,
+    );
+
+    if (!hasProviderMeals) {
+      throw new Error("You can only view orders that contain your meals");
+    }
+    // no
+  }
+
+  return order;
+};
+
 export const orderService = {
   createOrder,
   updateOrderStatus,
   cancelOrder,
   getMyOrders,
   getAllOrdersForAdmin,
+  getOrderById,
 };
