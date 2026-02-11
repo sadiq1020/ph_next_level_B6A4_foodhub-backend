@@ -3,10 +3,18 @@ import { ROLES } from "../shared";
 
 async function seedAdmin() {
   try {
+    // const adminData = {
+    //   name: "Admin Sadiq2",
+    //   email: "admin@sadiq2.com",
+    //   password: "admin1234",
+    //   role: ROLES.ADMIN,
+    // };
+
+    // ✅ Get admin credentials from environment variables
     const adminData = {
-      name: "Admin Sadiq2",
-      email: "admin@sadiq2.com",
-      password: "admin1234",
+      name: process.env.ADMIN_NAME || "Admin User",
+      email: process.env.ADMIN_EMAIL || "admin@example.com",
+      password: process.env.ADMIN_PASSWORD || "admin1234",
       role: ROLES.ADMIN,
     };
 
