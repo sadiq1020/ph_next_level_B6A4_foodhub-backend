@@ -2,6 +2,7 @@ import { toNodeHandler } from "better-auth/node";
 import cors from "cors";
 import express from "express";
 import { auth } from "./lib/auth";
+import { adminRouter } from "./modules/admin/admin.route";
 import { categoryRouter } from "./modules/category/category.router";
 import { mealRouter } from "./modules/meal/meal.router";
 import { orderRouter } from "./modules/order/order.route";
@@ -30,6 +31,7 @@ app.use("/provider", providerRouter);
 app.use("/orders", orderRouter);
 app.use("/users", userRouter);
 app.use("/reviews", reviewRouter);
+app.use("/admin", adminRouter);
 
 // test the server running
 app.get("/", (req, res) => {
