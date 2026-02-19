@@ -74,7 +74,7 @@ const getAllMeals = async (req: Request, res: Response) => {
 // get meal by ID
 const getMealById = async (req: Request, res: Response) => {
   try {
-    const mealId = req.params.id;
+    const mealId = req.params.id as string;
 
     if (!mealId) {
       throw new Error("meal id is required");
@@ -111,7 +111,7 @@ const updateMeal = async (req: Request, res: Response) => {
       });
     }
 
-    const mealId = req.params.id;
+    const mealId = req.params.id as string;
 
     if (!mealId) {
       return res.status(400).json({
@@ -147,7 +147,7 @@ const deleteMeal = async (req: Request, res: Response) => {
       });
     }
 
-    const mealId = req.params.id;
+    const mealId = req.params.id as string;
 
     if (!mealId) {
       return res.status(400).json({
@@ -170,10 +170,38 @@ const deleteMeal = async (req: Request, res: Response) => {
   }
 };
 
+// get my meals (Provider only - all meals created by this provider)
+const getMyMeals = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const result = await mealService.getMyMeals(user.id);
+
+    res.status(200).json({
+      success: true,
+      message: "Meals retrieved successfully",
+      data: result,
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to get meals",
+    });
+  }
+};
+
 export const mealController = {
   createMeal,
   getAllMeals,
   getMealById,
   updateMeal,
   deleteMeal,
+  getMyMeals,
 };

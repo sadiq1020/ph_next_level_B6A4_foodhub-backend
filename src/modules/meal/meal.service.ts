@@ -1,5 +1,5 @@
 import { prisma } from "../../lib/prisma";
-import { ICreateMeal, IMealFilters } from "./meal.interface";
+import { ICreateMeal, IMealFilters, IUpdateMeal } from "./meal.interface";
 
 // create a meal with validation
 const createMeal = async (data: ICreateMeal, userId: string) => {
@@ -208,10 +208,49 @@ const deleteMeal = async (mealId: string, userId: string) => {
   return { message: "Meal deleted successfully" };
 };
 
+// get meals created by this provider
+const getMyMeals = async (userId: string) => {
+  // 1. Find the provider profile for this user
+  const provider = await prisma.providerProfiles.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+
+  if (!provider) {
+    throw new Error("Provider profile not found");
+  }
+
+  // 2. Get all meals for this provider
+  const meals = await prisma.meal.findMany({
+    where: {
+      providerId: provider.id,
+    },
+    include: {
+      category: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      _count: {
+        select: {
+          reviews: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  return meals;
+};
+
 export const mealService = {
   createMeal,
   getAllMeals,
   getMealById,
   updateMeal,
   deleteMeal,
+  getMyMeals,
 };
