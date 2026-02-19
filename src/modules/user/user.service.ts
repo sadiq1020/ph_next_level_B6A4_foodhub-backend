@@ -1,4 +1,5 @@
 import { prisma } from "../../lib/prisma";
+import { IUpdateProfile } from "./user.interface";
 
 /*
 // get all users (Admin only)
@@ -63,7 +64,7 @@ const getAllUsers = async () => {
   return users;
 };
 
-// update user status (suspend/activate)
+// update user status (suspend/activate, only admin)
 const updateUserStatus = async (userId: string, isActive: boolean) => {
   // 1. Verify user exists
   const user = await prisma.user.findUnique({
@@ -105,7 +106,42 @@ const updateUserStatus = async (userId: string, isActive: boolean) => {
   return updatedUser;
 };
 
+// update customer profile (Customer only - their own profile)
+const updateProfile = async (userId: string, data: IUpdateProfile) => {
+  // 1. Verify user exists
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true },
+  });
+
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // 2. Update profile
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      name: data.name,
+      phone: data.phone || null,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      role: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  // 3. Return updated user
+  return updatedUser;
+};
+
 export const userService = {
   getAllUsers,
   updateUserStatus,
+  updateProfile,
 };

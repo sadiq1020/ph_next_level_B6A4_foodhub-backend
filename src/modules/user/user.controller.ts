@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { IUpdateProfile } from "./user.interface";
 import { userService } from "./user.service";
 
 /**
@@ -127,7 +128,67 @@ const updateUserStatus = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Update own profile
+ * PUT /api/users/profile
+ * Auth: Customer/Provider/Admin (any authenticated user)
+ */
+const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { name, phone } = req.body;
+
+    // Validate required fields
+    if (!name || name.trim().length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: "Name is required and must be at least 2 characters",
+      });
+    }
+
+    // Validate phone if provided
+    if (phone && !/^[0-9]{10,15}$/.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone must be 10-15 digits",
+      });
+    }
+
+    const updateData: IUpdateProfile = {
+      name: name.trim(),
+      phone: phone || null,
+    };
+
+    // Update profile
+    const updatedUser = await userService.updateProfile(user.id, updateData);
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: updatedUser,
+    });
+  } catch (error: any) {
+    console.error("Update profile error:", error);
+
+    const statusCode = error.message === "User not found" ? 404 : 400;
+
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || "Failed to update profile",
+    });
+  }
+};
+
 export const userController = {
   getAllUsers,
   updateUserStatus,
+  updateProfile,
 };

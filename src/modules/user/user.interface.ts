@@ -3,3 +3,8 @@ export interface IUserFilters {
   isActive?: boolean; // Filter by active status
   search?: string; // Search by name or email
 }
+
+export interface IUpdateProfile {
+  name: string;
+  phone?: string | null;
+}
