@@ -6,6 +6,7 @@ import { adminRouter } from "./modules/admin/admin.route";
 import { categoryRouter } from "./modules/category/category.router";
 import { mealRouter } from "./modules/meal/meal.router";
 import { orderRouter } from "./modules/order/order.route";
+import { providerProfilesRouter } from "./modules/provider/provider-profiles.route";
 import { providerRouter } from "./modules/provider/provider.route";
 import { reviewRouter } from "./modules/review/review.router";
 import { userRouter } from "./modules/user/user.router";
@@ -28,6 +29,7 @@ app.all("/api/auth/*splat", toNodeHandler(auth));
 app.use("/meals", mealRouter);
 app.use("/categories", categoryRouter);
 app.use("/provider", providerRouter);
+app.use("/provider-profile", providerProfilesRouter); // public auth to view provider profiles
 app.use("/orders", orderRouter);
 app.use("/users", userRouter);
 app.use("/reviews", reviewRouter);

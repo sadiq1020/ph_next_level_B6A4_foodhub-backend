@@ -157,9 +157,52 @@ const getMyOrders = async (userId: string) => {
   return orders;
 };
 
+// get provider profile by ID (Public)
+const getProviderById = async (providerId: string) => {
+  const profile = await prisma.providerProfiles.findUnique({
+    where: { id: providerId },
+    include: {
+      meals: {
+        where: {
+          isAvailable: true,
+        },
+        include: {
+          category: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          provider: {
+            select: {
+              id: true,
+              businessName: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      },
+      _count: {
+        select: {
+          meals: true,
+        },
+      },
+    },
+  });
+
+  if (!profile) {
+    throw new Error("Provider profile not found");
+  }
+
+  return profile;
+};
+
 export const providerService = {
   createProviderProfile,
   getMyProfile,
   updateMyProfile,
+  getProviderById,
   getMyOrders,
 };

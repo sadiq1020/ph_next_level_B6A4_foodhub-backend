@@ -1,0 +1,8 @@
+import express from "express";
+import { providerController } from "./provider.controller";
+
+const router = express.Router();
+
+router.get("/:id", providerController.getProviderById); // Public
+
+export const providerProfilesRouter = router;

@@ -126,9 +126,47 @@ const getMyOrders = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get provider profile by ID (Public)
+ * GET /api/provider-profiles/:id
+ * No auth required
+ */
+const getProviderById = async (req: Request, res: Response) => {
+  try {
+    const providerId = req.params.id as string;
+
+    if (!providerId) {
+      return res.status(400).json({
+        success: false,
+        message: "Provider ID is required",
+      });
+    }
+
+    // Get provider profile
+    const profile = await providerService.getProviderById(providerId);
+
+    res.status(200).json({
+      success: true,
+      message: "Provider profile retrieved successfully",
+      data: profile,
+    });
+  } catch (error: any) {
+    console.error("Get provider profile error:", error);
+
+    const statusCode =
+      error.message === "Provider profile not found" ? 404 : 500;
+
+    res.status(statusCode).json({
+      success: false,
+      message: error.message || "Failed to retrieve provider profile",
+    });
+  }
+};
+
 export const providerController = {
   createProviderProfile,
   getMyProfile,
   updateMyProfile,
+  getProviderById,
   getMyOrders,
 };
