@@ -163,10 +163,35 @@ const getProviderById = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Get all providers (Public)
+ * GET /api/provider-profiles
+ * No auth required
+ */
+const getAllProviders = async (req: Request, res: Response) => {
+  try {
+    const providers = await providerService.getAllProviders();
+
+    res.status(200).json({
+      success: true,
+      message: "Providers retrieved successfully",
+      data: providers,
+      total: providers.length,
+    });
+  } catch (error: any) {
+    console.error("Get all providers error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to retrieve providers",
+    });
+  }
+};
+
 export const providerController = {
   createProviderProfile,
   getMyProfile,
   updateMyProfile,
   getProviderById,
   getMyOrders,
+  getAllProviders,
 };

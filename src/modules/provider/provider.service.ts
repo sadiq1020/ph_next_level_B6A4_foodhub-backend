@@ -199,10 +199,35 @@ const getProviderById = async (providerId: string) => {
   return profile;
 };
 
+// get all provider profiles (Public)
+const getAllProviders = async () => {
+  const providers = await prisma.providerProfiles.findMany({
+    select: {
+      id: true,
+      businessName: true,
+      description: true,
+      address: true,
+      logo: true,
+      createdAt: true,
+      _count: {
+        select: {
+          meals: true,
+        },
+      },
+    },
+    orderBy: {
+      businessName: "asc",
+    },
+  });
+
+  return providers;
+};
+
 export const providerService = {
   createProviderProfile,
   getMyProfile,
   updateMyProfile,
   getProviderById,
   getMyOrders,
+  getAllProviders,
 };
