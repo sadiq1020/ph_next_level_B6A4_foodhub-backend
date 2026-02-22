@@ -14,9 +14,31 @@ import { userRouter } from "./modules/user/user.router";
 const app = express();
 
 // setting cors
+// app.use(
+//   cors({
+//     origin: process.env.APP_URL || "http://localhost:3000", // client side url
+//     credentials: true,
+//   }),
+// );
+
+// // CORS Configuration for Production
+const allowedOrigins = [
+  "http://localhost:3000", // Local development
+  process.env.APP_URL, // Frontend URL from environment variable
+].filter(Boolean); // Remove undefined values
+
 app.use(
   cors({
-    origin: process.env.APP_URL || "http://localhost:3000", // client side url
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   }),
 );
