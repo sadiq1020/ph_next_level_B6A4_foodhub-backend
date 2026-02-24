@@ -48,13 +48,13 @@ model ProviderProfiles {
 model Category {
   id        String   @id @default(uuid())
   name      String   @unique
+  slug      String   @unique // ✅ Add this back
   image     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  meals     Meal[]
 
-  meals Meal[]
-
-  @@map("categories")
+  @@map("categories") // ✅ Maps to the actual table name
 }
 
 model Meal {

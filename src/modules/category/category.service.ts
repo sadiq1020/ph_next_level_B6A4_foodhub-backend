@@ -1,14 +1,30 @@
 import { prisma } from "../../lib/prisma";
 import { ICreateCategory, IUpdateCategory } from "./category.interface";
 
+// ✅ Helper to generate slug from name
+const generateSlug = (name: string): string => {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+};
+
 // create new category
 const createCategory = async (data: ICreateCategory) => {
   console.log("🔍 Data received in service:", data); // ✅ Debug
   console.log("🔍 Data type:", typeof data); // ✅ Debug
   console.log("🔍 Data keys:", Object.keys(data)); // ✅ Debug
+  // ✅ Auto-generate slug from name
+  const categoryData = {
+    name: data.name,
+    slug: generateSlug(data.name),
+    image: data.image || null,
+  };
+
   const result = await prisma.category.create({
-    data,
+    data: categoryData,
   });
+
   return result;
 };
 
@@ -32,7 +48,6 @@ const getAllCategories = async () => {
 
 // update category
 const updateCategory = async (categoryId: string, data: IUpdateCategory) => {
-  // 1. Verify category exists
   const category = await prisma.category.findUnique({
     where: { id: categoryId },
     select: { id: true },
@@ -42,10 +57,15 @@ const updateCategory = async (categoryId: string, data: IUpdateCategory) => {
     throw new Error("Category not found");
   }
 
-  // 2. Update category
+  // ✅ Auto-generate slug if name is being updated
+  const updateData: any = { ...data };
+  if (data.name) {
+    updateData.slug = generateSlug(data.name);
+  }
+
   const updatedCategory = await prisma.category.update({
     where: { id: categoryId },
-    data,
+    data: updateData,
     include: {
       _count: {
         select: {
@@ -55,7 +75,6 @@ const updateCategory = async (categoryId: string, data: IUpdateCategory) => {
     },
   });
 
-  // 3. Return updated category
   return updatedCategory;
 };
 
