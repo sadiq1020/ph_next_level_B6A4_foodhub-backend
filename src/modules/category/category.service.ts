@@ -3,6 +3,9 @@ import { ICreateCategory, IUpdateCategory } from "./category.interface";
 
 // create new category
 const createCategory = async (data: ICreateCategory) => {
+  console.log("🔍 Data received in service:", data); // ✅ Debug
+  console.log("🔍 Data type:", typeof data); // ✅ Debug
+  console.log("🔍 Data keys:", Object.keys(data)); // ✅ Debug
   const result = await prisma.category.create({
     data,
   });
