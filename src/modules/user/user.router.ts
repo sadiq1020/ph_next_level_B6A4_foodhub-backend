@@ -8,7 +8,7 @@ const router = express.Router();
 // // Customer/Provider/Admin - update own profile
 router.put(
   "/profile",
-  auth(ROLES.CUSTOMER, ROLES.PROVIDER, ROLES.ADMIN),
+  auth(ROLES.CUSTOMER, ROLES.INSTRUCTOR, ROLES.ADMIN),
   userController.updateProfile,
 );
 // Admin routes

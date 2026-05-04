@@ -1,6 +1,6 @@
 export interface ICreateReview {
-  mealId: string;
   customerId: string;
-  rating: number; // 1-5
+  courseId: string;   // was: mealId
+  rating: number;
   comment?: string;
 }

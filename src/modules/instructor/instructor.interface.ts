@@ -1,12 +1,13 @@
-export interface ICreateProviderProfile {
+export interface ICreateInstructorProfile {
   businessName: string;
   description?: string;
   address: string;
   logo?: string;
   userId: string;
+  // status is NOT here — always set server-side to PENDING
 }
 
-export interface IUpdateProviderProfile {
+export interface IUpdateInstructorProfile {
   businessName?: string;
   description?: string;
   address?: string;

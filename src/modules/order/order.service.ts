@@ -2,73 +2,65 @@ import { prisma } from "../../lib/prisma";
 import { ICreateOrder } from "./order.interface";
 import { generateOrderNumber } from "./order.utils";
 
-// create order
+const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
+
+// Create enrollment (order)
 const createOrder = async (data: ICreateOrder) => {
-  // 1. Fetch meal prices from database (don't trust frontend prices!)
-  const mealIds = data.items.map((item) => item.mealId);
-  const meals = await prisma.meal.findMany({
-    where: { id: { in: mealIds } },
+  // 1. Fetch course prices from DB — never trust frontend prices
+  const courseIds = data.items.map((item) => item.courseId);
+  const courses = await prisma.course.findMany({
+    where: { id: { in: courseIds } },
   });
 
-  // 2. Calculate subtotal (price * quantity for each item)
+  // 2. Calculate subtotal
   let subtotal = 0;
-  const orderItemsData = data.items.map((item) => {
-    const meal = meals.find((m) => m.id === item.mealId);
-    if (!meal) throw new Error(`Meal ${item.mealId} not found`);
+  const enrollmentItemsData = data.items.map((item) => {
+    const course = courses.find((c) => c.id === item.courseId);
+    if (!course) throw new Error(`Course ${item.courseId} not found`);
 
-    const itemTotal = (meal.price as any) * item.quantity;
+    const itemTotal = (course.price as any) * item.quantity;
     subtotal += itemTotal;
 
     return {
-      mealId: item.mealId,
+      courseId: item.courseId,
       quantity: item.quantity,
-      price: meal.price, // Save price at time of order
+      price: course.price, // lock in price at enrollment time
     };
   });
 
-  // 3. Add delivery fee
-  const deliveryFee = 50;
-  const total = subtotal + deliveryFee;
+  // 3. No delivery fee — digital product
+  const total = subtotal;
+  const orderNumber = generateOrderNumber();
+  const accessUntil = new Date(Date.now() + ONE_YEAR_MS);
 
-  // 4. Generate unique order number
-  const orderNumber = generateOrderNumber(); // from order.utils.ts
-
-  // 5. Create Order AND OrderItems in a TRANSACTION
-  // This ensures both are created together or neither is created
+  // 4. Create Order + EnrollmentItems in a transaction
   const order = await prisma.$transaction(async (tx) => {
-    // Create the Order
     const newOrder = await tx.order.create({
       data: {
         orderNumber,
         customerId: data.customerId,
-        deliveryAddress: data.deliveryAddress,
-        phone: data.phone,
         notes: data.notes ?? null,
         subtotal,
-        deliveryFee,
         total,
-        status: "PLACED",
+        accessUntil,
+        status: "PENDING",
       },
     });
 
-    // Create all OrderItems
-    await tx.orderItem.createMany({
-      data: orderItemsData.map((item) => ({
+    await tx.enrollmentItem.createMany({
+      data: enrollmentItemsData.map((item) => ({
         orderId: newOrder.id,
-        mealId: item.mealId,
+        courseId: item.courseId,
         quantity: item.quantity,
         price: item.price,
       })),
     });
 
-    // Return the order with items included
     return tx.order.findUnique({
       where: { id: newOrder.id },
       include: {
         items: {
-          include: {
-            meal: true,
-          },
+          include: { course: true },
         },
         customer: {
           select: { id: true, name: true, email: true },
@@ -80,21 +72,20 @@ const createOrder = async (data: ICreateOrder) => {
   return order;
 };
 
-// update order status (Provider only)
+// Update enrollment status (INSTRUCTOR only)
 const updateOrderStatus = async (
   orderId: string,
   status: string,
   userId: string,
 ) => {
-  // 1. Find the order with its items and meal providers
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
       items: {
         include: {
-          meal: {
+          course: {
             include: {
-              provider: {
+              instructor: {
                 select: { id: true, userId: true },
               },
             },
@@ -104,35 +95,27 @@ const updateOrderStatus = async (
     },
   });
 
-  // 2. Verify order exists
-  if (!order) {
-    throw new Error("Order not found");
-  }
+  if (!order) throw new Error("Enrollment not found");
 
-  // 3. Verify the order contains items from this provider's meals
-  const hasProviderMeals = order.items.some(
-    (item) => item.meal.provider.userId === userId,
+  const hasInstructorCourses = order.items.some(
+    (item) => item.course.instructor.userId === userId,
   );
 
-  if (!hasProviderMeals) {
-    throw new Error("You can only update orders that contain your meals");
+  if (!hasInstructorCourses) {
+    throw new Error("You can only update enrollments for your own courses");
   }
 
-  // 4. Validate status (only allow provider-specific statuses)
-  const allowedStatuses = ["PREPARING", "READY", "DELIVERED"];
+  const allowedStatuses = ["ACTIVE", "COMPLETED", "EXPIRED"];
   if (!allowedStatuses.includes(status)) {
-    throw new Error("Invalid status. Allowed: PREPARING, READY, DELIVERED");
+    throw new Error("Invalid status. Allowed: ACTIVE, COMPLETED, EXPIRED");
   }
 
-  // 5. Update order status
   const updatedOrder = await prisma.order.update({
     where: { id: orderId },
     data: { status: status as any },
     include: {
       items: {
-        include: {
-          meal: true,
-        },
+        include: { course: true },
       },
       customer: {
         select: { id: true, name: true, email: true },
@@ -140,46 +123,32 @@ const updateOrderStatus = async (
     },
   });
 
-  // 6. Return updated order
   return updatedOrder;
 };
 
-// cancel order (Customer only)
+// Cancel enrollment (CUSTOMER only, while PENDING)
 const cancelOrder = async (orderId: string, userId: string) => {
-  // 1. Find the order
   const order = await prisma.order.findUnique({
     where: { id: orderId },
-    include: {
-      customer: {
-        select: { id: true },
-      },
-    },
+    select: { id: true, customerId: true, status: true },
   });
 
-  // 2. Verify order exists
-  if (!order) {
-    throw new Error("Order not found");
-  }
+  if (!order) throw new Error("Enrollment not found");
 
-  // 3. Only customer who placed the order can cancel
   if (order.customerId !== userId) {
-    throw new Error("You can only cancel your own orders");
+    throw new Error("You can only cancel your own enrollments");
   }
 
-  // 4. Only if status is PLACED
-  if (order.status !== "PLACED") {
-    throw new Error("Only orders with PLACED status can be cancelled");
+  if (order.status !== "PENDING") {
+    throw new Error("Only PENDING enrollments can be cancelled");
   }
 
-  // 5. Update status to CANCELLED
   const updatedOrder = await prisma.order.update({
     where: { id: orderId },
     data: { status: "CANCELLED" },
     include: {
       items: {
-        include: {
-          meal: true,
-        },
+        include: { course: true },
       },
       customer: {
         select: { id: true, name: true, email: true },
@@ -187,47 +156,42 @@ const cancelOrder = async (orderId: string, userId: string) => {
     },
   });
 
-  // 6. Return updated order
   return updatedOrder;
 };
 
-// get my orders (Customer only)
+// Get my enrollments (CUSTOMER only)
 const getMyOrders = async (userId: string) => {
-  // Fetch all orders for this customer
   const orders = await prisma.order.findMany({
-    where: {
-      customerId: userId,
-    },
+    where: { customerId: userId },
     include: {
       items: {
         include: {
-          meal: {
+          course: {
             select: {
               id: true,
               name: true,
               image: true,
               price: true,
+              duration: true,
+              difficulty: true,
             },
           },
         },
       },
     },
-    orderBy: {
-      createdAt: "desc", // Most recent orders first
-    },
+    orderBy: { createdAt: "desc" },
   });
 
   return orders;
 };
 
-// get all orders (Admin only)
+// Get all enrollments (ADMIN only)
 const getAllOrdersForAdmin = async () => {
-  // Fetch all orders from all customers
   const orders = await prisma.order.findMany({
     include: {
       items: {
         include: {
-          meal: {
+          course: {
             select: {
               id: true,
               name: true,
@@ -246,71 +210,51 @@ const getAllOrdersForAdmin = async () => {
         },
       },
     },
-    orderBy: {
-      createdAt: "desc", // recent orders will show first
-    },
+    orderBy: { createdAt: "desc" },
   });
 
   return orders;
 };
 
-// get order by id (Customer/Provider)
+// Get enrollment by ID (CUSTOMER / INSTRUCTOR)
 const getOrderById = async (
   orderId: string,
   userId: string,
   userRole: string,
 ) => {
-  // Fetch the order with all details
   const order = await prisma.order.findUnique({
     where: { id: orderId },
     include: {
       items: {
         include: {
-          meal: {
+          course: {
             include: {
-              provider: {
-                select: {
-                  id: true,
-                  businessName: true,
-                  userId: true,
-                },
+              instructor: {
+                select: { id: true, businessName: true, userId: true },
               },
             },
           },
         },
       },
       customer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-        },
+        select: { id: true, name: true, email: true, phone: true },
       },
     },
   });
 
-  // Verify order exists
-  if (!order) {
-    throw new Error("Order not found");
-  }
+  if (!order) throw new Error("Enrollment not found");
 
-  // Authorization check
   if (userRole === "CUSTOMER") {
-    // Customer can only view their own orders
     if (order.customerId !== userId) {
-      throw new Error("You can only view your own orders");
+      throw new Error("You can only view your own enrollments");
     }
-  } else if (userRole === "PROVIDER") {
-    // Provider can only view orders containing their meals
-    const hasProviderMeals = order.items.some(
-      (item) => item.meal.provider.userId === userId,
+  } else if (userRole === "INSTRUCTOR") {
+    const hasInstructorCourses = order.items.some(
+      (item) => item.course.instructor.userId === userId,
     );
-
-    if (!hasProviderMeals) {
-      throw new Error("You can only view orders that contain your meals");
+    if (!hasInstructorCourses) {
+      throw new Error("You can only view enrollments for your own courses");
     }
-    // no
   }
 
   return order;

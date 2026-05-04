@@ -11,9 +11,9 @@ const generateSlug = (name: string): string => {
 
 // create new category
 const createCategory = async (data: ICreateCategory) => {
-  console.log("🔍 Data received in service:", data); // ✅ Debug
-  console.log("🔍 Data type:", typeof data); // ✅ Debug
-  console.log("🔍 Data keys:", Object.keys(data)); // ✅ Debug
+  // console.log("🔍 Data received in service:", data); // ✅ Debug
+  // console.log("🔍 Data type:", typeof data); // ✅ Debug
+  // console.log("🔍 Data keys:", Object.keys(data)); // ✅ Debug
   // ✅ Auto-generate slug from name
   const categoryData = {
     name: data.name,
@@ -34,7 +34,7 @@ const getAllCategories = async () => {
     include: {
       _count: {
         select: {
-          meals: true, // this will show hoe many meals in each category
+          courses: true, // shows how many courses in each category
         },
       },
     },
@@ -69,7 +69,7 @@ const updateCategory = async (categoryId: string, data: IUpdateCategory) => {
     include: {
       _count: {
         select: {
-          meals: true,
+          courses: true,
         },
       },
     },
@@ -86,7 +86,7 @@ const deleteCategory = async (categoryId: string) => {
     include: {
       _count: {
         select: {
-          meals: true,
+          courses: true,
         },
       },
     },
@@ -96,10 +96,10 @@ const deleteCategory = async (categoryId: string) => {
     throw new Error("Category not found");
   }
 
-  // 2. Check if category has meals
-  if (category._count.meals > 0) {
+  // 2. Check if category has courses
+  if (category._count.courses > 0) {
     throw new Error(
-      `Cannot delete category. It has ${category._count.meals} meal/s that is/are associate with it.`,
+      `Cannot delete category. It has ${category._count.courses} course/s that is/are associated with it.`,
     );
   }
 

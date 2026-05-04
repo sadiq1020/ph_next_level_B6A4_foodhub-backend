@@ -1,10 +1,8 @@
 export interface ICreateOrder {
-    customerId: string;
-    deliveryAddress: string;
-    phone: string;
-    notes?: string;
-    items: Array<{
-        mealId: string;
-        quantity: number;
-    }>;
+  customerId: string;
+  notes?: string;
+  items: Array<{
+    courseId: string;   // was: mealId
+    quantity: number;   // always 1 per course enrollment
+  }>;
 }

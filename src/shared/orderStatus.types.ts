@@ -1,7 +1,9 @@
 export const ORDER_STATUS = {
-    PLACED: 'PLACED',
-    PREPARING: 'PREPARING',
-    READY: 'READY',
-    DELIVERED: 'DELIVERED',
-    CANCELLED: 'CANCELLED',
+  PENDING:   "PENDING",
+  ACTIVE:    "ACTIVE",
+  COMPLETED: "COMPLETED",
+  EXPIRED:   "EXPIRED",
+  CANCELLED: "CANCELLED",
 } as const;
+ 
+export type OrderStatus = typeof ORDER_STATUS[keyof typeof ORDER_STATUS];

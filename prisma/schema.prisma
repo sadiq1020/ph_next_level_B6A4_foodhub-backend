@@ -13,51 +13,60 @@ datasource db {
 
 enum Role {
   CUSTOMER
-  PROVIDER
+  INSTRUCTOR
   ADMIN
 }
 
 enum OrderStatus {
-  PLACED
-  PREPARING
-  READY
-  DELIVERED
+  PENDING
+  ACTIVE
+  COMPLETED
+  EXPIRED
   CANCELLED
+}
+
+enum InstructorStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
 
 // ==========================================
 // CUSTOM MODELS
 // ==========================================
 
-model ProviderProfiles {
-  id           String   @id @default(uuid())
+model InstructorProfiles {
+  id           String           @id @default(uuid())
   businessName String
   description  String?
   address      String
   logo         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  status       InstructorStatus @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  meals  Meal[]
 
-  @@map("provider_profiles")
+  courses Course[]
+
+  @@map("instructor_profiles")
 }
 
 model Category {
   id        String   @id @default(uuid())
   name      String   @unique
-  slug      String   @unique // ✅ Add this back
+  slug      String   @unique
   image     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  meals     Meal[]
 
-  @@map("categories") // ✅ Maps to the actual table name
+  courses Course[]
+
+  @@map("categories")
 }
 
-model Meal {
+model Course {
   id          String  @id @default(uuid())
   name        String
   description String?
@@ -65,21 +74,28 @@ model Meal {
   image       String?
   isAvailable Boolean @default(true)
 
-  categoryId String // relation 1
+  // ── KitchenClass: course-specific fields ─────────────
+  videoUrl     String?  // Preview/intro video URL
+  duration     Int?     // Total course length in minutes
+  difficulty   String?  // BEGINNER | INTERMEDIATE | ADVANCED
+  lessonsCount Int?     // Total number of lessons
+  // ─────────────────────────────────────────────────────
+
+  categoryId String
   category   Category @relation(fields: [categoryId], references: [id])
 
-  providerId String // relation 2
-  provider   ProviderProfiles @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  instructorId String
+  instructor   InstructorProfiles @relation(fields: [instructorId], references: [id], onDelete: Cascade)
 
-  dietary String[] // ["vegetarian", "vegan", "gluten-free"] - REQUIRED for filtering
+  tags String[] // general purpose tags (replaces dietary)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  orderItems OrderItem[]
-  reviews    Review[]
+  enrollmentItems EnrollmentItem[]
+  reviews         Review[]
 
-  @@map("meals")
+  @@map("courses")
 }
 
 model Order {
@@ -89,37 +105,36 @@ model Order {
   customerId String
   customer   User   @relation(fields: [customerId], references: [id])
 
-  deliveryAddress String
-  phone           String
-  notes           String?
+  notes String?
 
-  subtotal    Decimal @db.Decimal(10, 2)
-  deliveryFee Decimal @default(0) @db.Decimal(10, 2)
-  total       Decimal @db.Decimal(10, 2)
+  subtotal Decimal @db.Decimal(10, 2)
+  total    Decimal @db.Decimal(10, 2)
 
-  status OrderStatus @default(PLACED)
+  accessUntil DateTime? // null = lifetime access
+
+  status OrderStatus @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  items OrderItem[]
+  items EnrollmentItem[]
 
   @@map("orders")
 }
 
-model OrderItem {
+model EnrollmentItem {
   id String @id @default(uuid())
 
   orderId String
   order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  mealId String
-  meal   Meal   @relation(fields: [mealId], references: [id])
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id])
 
   quantity Int
   price    Decimal @db.Decimal(10, 2)
 
-  @@map("order_items")
+  @@map("enrollment_items")
 }
 
 model Review {
@@ -128,8 +143,8 @@ model Review {
   customerId String
   customer   User   @relation(fields: [customerId], references: [id])
 
-  mealId String
-  meal   Meal   @relation(fields: [mealId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   rating  Int
   comment String?
@@ -153,19 +168,16 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Custom fields
   phone    String?
   role     Role    @default(CUSTOMER)
   isActive Boolean @default(true)
 
-  // Better Auth relations
   sessions Session[]
   accounts Account[]
 
-  // Custom relations
-  providerProfile ProviderProfiles?
-  orders          Order[]
-  reviews         Review[]
+  instructorProfile InstructorProfiles?
+  orders            Order[]
+  reviews           Review[]
 
   @@map("user")
 }
