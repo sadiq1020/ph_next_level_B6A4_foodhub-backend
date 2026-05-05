@@ -38,7 +38,26 @@ const createReview = async (req: Request, res: Response) => {
     });
   }
 };
+// GET /reviews/top — Public, no auth required
+// Returns latest 3 five-star reviews with a comment for home page testimonials
+const getTopReviews = async (req: Request, res: Response) => {
+  try {
+    const reviews = await reviewService.getTopReviews();
+ 
+    res.status(200).json({
+      success: true,
+      message: "Top reviews retrieved successfully",
+      data: reviews,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to retrieve reviews",
+    });
+  }
+};
 
 export const reviewController = {
   createReview,
+  getTopReviews
 };

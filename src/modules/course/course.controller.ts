@@ -6,10 +6,7 @@ import { courseService } from "./course.service";
 const createCourse = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+    if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const result = await courseService.createCourse(req.body, user.id);
 
@@ -19,23 +16,23 @@ const createCourse = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message || "Failed to create course",
-    });
+    res.status(400).json({ success: false, message: error.message || "Failed to create course" });
   }
 };
 
-// GET /courses — public, with optional filters
+// GET /courses — public, with filters + sort + pagination
 const getAllCourses = async (req: Request, res: Response) => {
   try {
     const filters: ICourseFilters = {
-      categoryId: req.query.categoryId as string | undefined,
-      difficulty: req.query.difficulty as string | undefined,
+      categoryId:   req.query.categoryId as string | undefined,
+      difficulty:   req.query.difficulty as string | undefined,
       instructorId: req.query.instructorId as string | undefined,
-      search: req.query.search as string | undefined,
-      minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
-      maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
+      search:       req.query.search as string | undefined,
+      minPrice:     req.query.minPrice ? Number(req.query.minPrice) : undefined,
+      maxPrice:     req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
+      sort:         req.query.sort as string | undefined,
+      page:         req.query.page ? Number(req.query.page) : 1,
+      limit:        req.query.limit ? Number(req.query.limit) : 12,
     };
 
     const result = await courseService.getAllCourses(filters);
@@ -43,14 +40,14 @@ const getAllCourses = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "Courses retrieved successfully",
-      data: result,
-      total: result.length,
+      data: result.courses,
+      total: result.total,
+      page: result.page,
+      totalPages: result.totalPages,
+      limit: result.limit,
     });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message || "Failed to retrieve courses",
-    });
+    res.status(400).json({ success: false, message: error.message || "Failed to retrieve courses" });
   }
 };
 
@@ -58,10 +55,7 @@ const getAllCourses = async (req: Request, res: Response) => {
 const getMyCourses = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+    if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const result = await courseService.getMyCourses(user.id);
 
@@ -72,10 +66,7 @@ const getMyCourses = async (req: Request, res: Response) => {
       total: result.length,
     });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message || "Failed to retrieve your courses",
-    });
+    res.status(400).json({ success: false, message: error.message || "Failed to retrieve your courses" });
   }
 };
 
@@ -83,13 +74,7 @@ const getMyCourses = async (req: Request, res: Response) => {
 const getCourseById = async (req: Request, res: Response) => {
   try {
     const courseId = req.params.id as string;
-
-    if (!courseId) {
-      return res.status(400).json({
-        success: false,
-        message: "Course ID is required",
-      });
-    }
+    if (!courseId) return res.status(400).json({ success: false, message: "Course ID is required" });
 
     const result = await courseService.getCourseById(courseId);
 
@@ -100,10 +85,7 @@ const getCourseById = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     const statusCode = error.message === "Course not found" ? 404 : 500;
-    res.status(statusCode).json({
-      success: false,
-      message: error.message || "Failed to retrieve course",
-    });
+    res.status(statusCode).json({ success: false, message: error.message || "Failed to retrieve course" });
   }
 };
 
@@ -111,19 +93,10 @@ const getCourseById = async (req: Request, res: Response) => {
 const updateCourse = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+    if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const courseId = req.params.id as string;
-
-    if (!courseId) {
-      return res.status(400).json({
-        success: false,
-        message: "Course ID is required",
-      });
-    }
+    if (!courseId) return res.status(400).json({ success: false, message: "Course ID is required" });
 
     const result = await courseService.updateCourse(courseId, req.body, user.id);
 
@@ -133,10 +106,7 @@ const updateCourse = async (req: Request, res: Response) => {
       data: result,
     });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message || "Failed to update course",
-    });
+    res.status(400).json({ success: false, message: error.message || "Failed to update course" });
   }
 };
 
@@ -144,31 +114,16 @@ const updateCourse = async (req: Request, res: Response) => {
 const deleteCourse = async (req: Request, res: Response) => {
   try {
     const user = req.user;
-
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Unauthorized" });
-    }
+    if (!user) return res.status(401).json({ success: false, message: "Unauthorized" });
 
     const courseId = req.params.id as string;
-
-    if (!courseId) {
-      return res.status(400).json({
-        success: false,
-        message: "Course ID is required",
-      });
-    }
+    if (!courseId) return res.status(400).json({ success: false, message: "Course ID is required" });
 
     const result = await courseService.deleteCourse(courseId, user.id);
 
-    res.status(200).json({
-      success: true,
-      message: result.message,
-    });
+    res.status(200).json({ success: true, message: result.message });
   } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message || "Failed to delete course",
-    });
+    res.status(400).json({ success: false, message: error.message || "Failed to delete course" });
   }
 };
 

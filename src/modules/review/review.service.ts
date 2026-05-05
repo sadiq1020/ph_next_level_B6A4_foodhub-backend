@@ -66,6 +66,29 @@ const createReview = async (data: ICreateReview) => {
   return review;
 };
 
+// Get top 5-star reviews for the home page testimonials section (Public)
+const getTopReviews = async () => {
+  const reviews = await prisma.review.findMany({
+    where: {
+      rating: 5,
+      comment: { not: null }, // only show reviews that have a comment
+    },
+    include: {
+      customer: {
+        select: { id: true, name: true },
+      },
+      course: {
+        select: { id: true, name: true },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 3, // latest 3 five-star reviews
+  });
+ 
+  return reviews;
+};
+
 export const reviewService = {
   createReview,
+  getTopReviews
 };

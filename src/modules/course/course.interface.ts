@@ -5,6 +5,10 @@ export interface ICourseFilters {
   maxPrice?: number | undefined;
   search?: string | undefined;
   instructorId?: string | undefined;
+  // ── New: sorting + pagination ─────────────────────────
+  sort?: string | undefined;         // newest | price_asc | price_desc | most_reviewed
+  page?: number | undefined;         // 1-based
+  limit?: number | undefined;        // default 12
 }
 
 export interface ICreateCourse {
@@ -15,12 +19,10 @@ export interface ICreateCourse {
   categoryId: string;
   instructorId: string;
   tags?: string[];
-  // ── Course-specific fields ────────────────────────────
   videoUrl?: string;
-  duration?: number;      // total minutes
-  difficulty?: string;    // BEGINNER | INTERMEDIATE | ADVANCED
+  duration?: number;
+  difficulty?: string;
   lessonsCount?: number;
-  // ─────────────────────────────────────────────────────
 }
 
 export interface IUpdateCourse {
