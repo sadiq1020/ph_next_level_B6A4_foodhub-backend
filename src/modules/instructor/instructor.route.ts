@@ -31,4 +31,7 @@ router.get(
   instructorController.getMyOrders,
 );
 
+// GET /instructor/charts — chart data for instructor dashboard
+router.get("/charts", auth(ROLES.INSTRUCTOR), instructorController.getChartData);
+
 export const instructorRouter = router;

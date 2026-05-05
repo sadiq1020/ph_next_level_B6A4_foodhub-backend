@@ -8,6 +8,11 @@ const router = express.Router();
 // All admin routes are protected — ADMIN role required
 router.get("/stats", auth(ROLES.ADMIN), adminController.getStats);
 
+// Chart data endpoints
+router.get("/charts/enrollment-trend", auth(ROLES.ADMIN), adminController.getEnrollmentTrend);
+router.get("/charts/revenue", auth(ROLES.ADMIN), adminController.getRevenueByMonth);
+router.get("/charts/user-roles", auth(ROLES.ADMIN), adminController.getUserRoleDistribution);
+
 // Instructor application management
 router.get(
   "/instructors",

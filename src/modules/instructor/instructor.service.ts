@@ -4,46 +4,28 @@ import {
   IUpdateInstructorProfile,
 } from "./instructor.interface";
 
-// Create instructor profile + set user role to INSTRUCTOR in one transaction
 const createInstructorProfile = async (
   data: ICreateInstructorProfile,
   userId: string,
 ) => {
-  // 1. Check if profile already exists for this user
   const existing = await prisma.instructorProfiles.findUnique({
     where: { userId },
   });
 
-  if (existing) {
-    throw new Error("Instructor profile already exists for this user");
-  }
+  if (existing) throw new Error("Instructor profile already exists");
 
-  // 2. Run as a transaction — both must succeed or neither does:
-  //    a) Create the InstructorProfiles record (status = PENDING by default)
-  //    b) Update User.role to INSTRUCTOR
   const result = await prisma.$transaction(async (tx) => {
     const profile = await tx.instructorProfiles.create({
       data: {
+        userId,
         businessName: data.businessName,
         description: data.description ?? null,
         address: data.address,
         logo: data.logo ?? null,
-        userId,
-        // status defaults to PENDING via schema — not set here
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
+        status: "PENDING",
       },
     });
 
-    // Promote user role to INSTRUCTOR so dashboard auth guards pass
     await tx.user.update({
       where: { id: userId },
       data: { role: "INSTRUCTOR" },
@@ -55,19 +37,12 @@ const createInstructorProfile = async (
   return result;
 };
 
-// Get my instructor profile (includes status for dashboard banner)
 const getMyProfile = async (userId: string) => {
   const profile = await prisma.instructorProfiles.findUnique({
     where: { userId },
     include: {
       user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          role: true,
-        },
+        select: { id: true, name: true, email: true, phone: true, role: true },
       },
       courses: {
         select: {
@@ -81,98 +56,74 @@ const getMyProfile = async (userId: string) => {
         },
         orderBy: { createdAt: "desc" },
       },
-      _count: {
-        select: { courses: true },
-      },
+      _count: { select: { courses: true } },
     },
   });
 
-  if (!profile) {
-    throw new Error("Instructor profile not found");
-  }
-
+  if (!profile) throw new Error("Instructor profile not found");
   return profile;
 };
 
-// Update my instructor profile
 const updateMyProfile = async (
   userId: string,
   data: IUpdateInstructorProfile,
 ) => {
   const profile = await prisma.instructorProfiles.findUnique({
     where: { userId },
-    select: { id: true },
   });
 
-  if (!profile) {
-    throw new Error("Instructor profile not found");
-  }
+  if (!profile) throw new Error("Instructor profile not found");
 
-  const updatedProfile = await prisma.instructorProfiles.update({
-    where: { id: profile.id },
-    data,
+  return await prisma.instructorProfiles.update({
+    where: { userId },
+    data: {
+      ...(data.businessName && { businessName: data.businessName }),
+      ...(data.address && { address: data.address }),
+      description: data.description ?? null,
+      logo: data.logo ?? null,
+    },
+  });
+};
+
+const getInstructorById = async (instructorId: string) => {
+  const instructor = await prisma.instructorProfiles.findUnique({
+    where: { id: instructorId },
     include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-          role: true,
+      courses: {
+        where: { isAvailable: true },
+        include: {
+          category: true,
+          _count: { select: { reviews: true } },
         },
       },
-      _count: {
-        select: { courses: true },
-      },
+      _count: { select: { courses: true } },
     },
   });
 
-  return updatedProfile;
+  if (!instructor) throw new Error("Instructor not found");
+  return instructor;
 };
 
-// Get enrollments for my courses (Instructor only)
 const getMyOrders = async (userId: string) => {
   const profile = await prisma.instructorProfiles.findUnique({
     where: { userId },
     select: { id: true },
   });
 
-  if (!profile) {
-    throw new Error("Instructor profile not found");
-  }
+  if (!profile) throw new Error("Instructor profile not found");
 
   const orders = await prisma.order.findMany({
     where: {
-      items: {
-        some: {
-          course: { instructorId: profile.id },
-        },
-      },
+      items: { some: { course: { instructorId: profile.id } } },
     },
     include: {
       items: {
-        where: {
-          course: { instructorId: profile.id },
-        },
+        where: { course: { instructorId: profile.id } },
         include: {
-          course: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
-              price: true,
-            },
-          },
+          course: { select: { id: true, name: true, image: true, price: true } },
         },
       },
-      customer: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          phone: true,
-        },
-      },
+      customer: { select: { id: true, name: true, email: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -180,55 +131,92 @@ const getMyOrders = async (userId: string) => {
   return orders;
 };
 
-// Get instructor profile by ID (Public)
-const getInstructorById = async (instructorId: string) => {
-  const profile = await prisma.instructorProfiles.findUnique({
-    where: { id: instructorId },
+const getAllInstructors = async () => {
+  return await prisma.instructorProfiles.findMany({
+    where: { status: "APPROVED" },
     include: {
-      courses: {
-        where: { isAvailable: true },
-        include: {
-          category: {
-            select: { id: true, name: true },
-          },
-          instructor: {
-            select: { id: true, businessName: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      _count: {
-        select: { courses: true },
-      },
+      _count: { select: { courses: true } },
     },
+    orderBy: { createdAt: "desc" },
   });
-
-  if (!profile) {
-    throw new Error("Instructor profile not found");
-  }
-
-  return profile;
 };
 
-// Get all APPROVED instructors (Public — course browse page)
-const getAllInstructors = async () => {
-  const instructors = await prisma.instructorProfiles.findMany({
-    where: { status: "APPROVED" },
-    select: {
-      id: true,
-      businessName: true,
-      description: true,
-      address: true,
-      logo: true,
-      createdAt: true,
-      _count: {
-        select: { courses: true },
-      },
-    },
-    orderBy: { businessName: "asc" },
+// ── Chart data for instructor dashboard ──────────────────────────────────────
+const getChartData = async (userId: string) => {
+  const profile = await prisma.instructorProfiles.findUnique({
+    where: { userId },
+    select: { id: true },
   });
 
-  return instructors;
+  if (!profile) throw new Error("Instructor profile not found");
+
+  // 1. Enrollments per course (bar chart)
+  const courses = await prisma.course.findMany({
+    where: { instructorId: profile.id },
+    select: {
+      id: true,
+      name: true,
+      price: true,
+      _count: { select: { enrollmentItems: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 8, // max 8 bars
+  });
+
+  const enrollmentsPerCourse = courses.map((c) => ({
+    course: c.name.length > 18 ? c.name.slice(0, 18) + "…" : c.name,
+    enrollments: c._count.enrollmentItems,
+    revenue: c._count.enrollmentItems * Number(c.price),
+  }));
+
+  // 2. Revenue over time — last 6 months (line chart)
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+  sixMonthsAgo.setDate(1);
+  sixMonthsAgo.setHours(0, 0, 0, 0);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      createdAt: { gte: sixMonthsAgo },
+      status: { in: ["ACTIVE", "COMPLETED"] },
+      items: { some: { course: { instructorId: profile.id } } },
+    },
+    include: {
+      items: {
+        where: { course: { instructorId: profile.id } },
+        select: { price: true, quantity: true },
+      },
+    },
+  });
+
+  // Pre-fill 6 months with zeros
+  const monthMap: Record<string, { month: string; revenue: number }> = {};
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    monthMap[key] = {
+      month: d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }),
+      revenue: 0,
+    };
+  }
+
+  for (const order of orders) {
+    const key = `${order.createdAt.getFullYear()}-${String(
+      order.createdAt.getMonth() + 1,
+    ).padStart(2, "0")}`;
+    if (monthMap[key]) {
+      const orderRevenue = order.items.reduce(
+        (sum, item) => sum + Number(item.price) * item.quantity,
+        0,
+      );
+      monthMap[key].revenue += orderRevenue;
+    }
+  }
+
+  const revenueOverTime = Object.values(monthMap);
+
+  return { enrollmentsPerCourse, revenueOverTime };
 };
 
 export const instructorService = {
@@ -238,4 +226,5 @@ export const instructorService = {
   getInstructorById,
   getMyOrders,
   getAllInstructors,
+  getChartData,
 };
